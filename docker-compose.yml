@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  api: 
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      # Only build development stage from Dockerfile
+      target: development
+
+    # Mount our host dir to the docker container
+    # Mount api directory (./backend) to (:) docker container (/workspace/api/src/app)
+    # Reflect file changes from host to container
+    volumes:
+      - ./backend:/workspace/api/src/app
+      - /workspace/api/src/app/node_modules
+
+    container_name: nest-docker
+    # RUN in debug mode: npm run start:debug --> Also start your vscode debugger
+    # Run in dev mode: npm run start:dev
+    command: npm run start:dev
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/db
+      - NODE_ENV=development
+      - PORT=3000
+    ports:
+      - '3000:3000'
+      - '9229:9229'
+
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: angular-docker
+    command: npm run start
+    volumes:
+      - ./frontend:/workspace/ui/src/app
+      - /workspace/ui/src/app/node_modules
+    ports: 
+      - '4200:4200'
+    links:
+      - api
+
+  postgres:
+    image: postgres:10.4
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=db
+    container_name: postgres-docker
+    ports:
+      - '35000:5432'
+
+  pgadmin:
+    image: dpage/pgadmin4:4.28
+    restart: always
+    container_name: pgadmin4-docker
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=password
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
