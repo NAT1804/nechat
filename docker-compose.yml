@@ -13,7 +13,7 @@ services:
     # Reflect file changes from host to container
     volumes:
       - ./backend:/workspace/api/src/app
-      - /workspace/api/src/app/node_modules
+      - /workspace/api/src/app/node_modules/
 
     container_name: nest-docker
     # RUN in debug mode: npm run start:debug --> Also start your vscode debugger
