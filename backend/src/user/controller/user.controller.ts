@@ -5,6 +5,7 @@ import { Observable, of, switchMap } from 'rxjs';
 import { CreateUserDto } from '../model/dto/create-user.dto';
 import { UserHelperService } from '../service/user-helper/user-helper.service';
 import { Pagination } from 'nestjs-typeorm-paginate';
+import { LoginUserDto } from '../model/dto/login-user.dto';
 
 @Controller('users')
 export class UserController {
@@ -33,6 +34,12 @@ export class UserController {
     });
   }
 
-  @Post()
-  login() {}
+  @Post('login')
+  login(@Body() LoginUserDto: LoginUserDto): Observable<boolean> {
+    return this.userHelperService.loginUserDtoToEnity(LoginUserDto).pipe(
+      switchMap((user: IUser) => {
+        return this.userService.login(user)
+      })
+    )
+  }
 }

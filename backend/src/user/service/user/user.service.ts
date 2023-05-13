@@ -5,7 +5,7 @@ import {
   Pagination,
   paginate,
 } from 'nestjs-typeorm-paginate';
-import { Observable, from, map, switchMap } from 'rxjs';
+import { Observable, from, map, mapTo, switchMap } from 'rxjs';
 import { UserEntity } from 'src/user/model/user.entity';
 import { IUser } from 'src/user/model/user.interface';
 import { Repository } from 'typeorm';
@@ -44,6 +44,39 @@ export class UserService {
 
   findAll(options: IPaginationOptions): Observable<Pagination<IUser>> {
     return from(paginate<UserEntity>(this.userRepository, options));
+  }
+
+  login(user: IUser): Observable<boolean> {
+    return this.findByEmail(user.email).pipe(
+      switchMap((foundUser: IUser) => {
+        if (foundUser) {
+          return this.validatePassword(user.password, foundUser.password).pipe(
+            switchMap((matches: boolean) => {
+              if (matches) {
+                return this.findOne(foundUser.id).pipe(map(user => !!user))
+              } else {
+                throw new HttpException('Login was not successfully, wrong credentials', HttpStatus.UNAUTHORIZED)
+              }
+            })
+          )
+        } else {
+          throw new HttpException('user not found', HttpStatus.NOT_FOUND)
+        }
+      })
+    );
+  }
+
+  private validatePassword(password: string, storedPasswordHash: string) {
+    return from(bcrypt.compare(password, storedPasswordHash))
+  }
+
+  private findByEmail(email: string): Observable<IUser> {
+    return from(
+      this.userRepository.findOne({
+        where: { email },
+        select: ['id', 'email', 'username', 'password'],
+      }),
+    );
   }
 
   private findOne(id: number): Observable<IUser> {
